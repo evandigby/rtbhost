@@ -35,7 +35,11 @@ type RtbAppOptions struct {
 	Domain                   string
 	PeriodicUpdates          bool
 	UpdateFrequencyInSeconds int
-	DataAccessOptions        struct {
+	PacerOptions             struct {
+		UsePacer             bool
+		TimeSegmentInSeconds int
+	}
+	DataAccessOptions struct {
 		Network            string
 		Address            string
 		ConnectionPoolSize int
@@ -49,7 +53,7 @@ type RtbAppOptions struct {
 }
 
 func (app *RtbApp) CreateDefaultCampaigns() {
-	app.campaignProvider.CreateCampaign(100101, rtb.CpmToMicroCents(0.32), rtb.DollarsToMicroCents(35.50), []rtb.Target{rtb.Target{Type: rtb.Placement, Value: "Words With Friends 2 iPad"}})
+	app.campaignProvider.CreateCampaign(100101, rtb.CpmToMicroCents(0.32), rtb.DollarsToMicroCents(0.50), []rtb.Target{rtb.Target{Type: rtb.Placement, Value: "Words With Friends 2 iPad"}})
 	app.campaignProvider.CreateCampaign(100102, rtb.CpmToMicroCents(0.04), rtb.DollarsToMicroCents(5.25), []rtb.Target{rtb.Target{Type: rtb.CreativeSize, Value: "728x90"}})
 	app.campaignProvider.CreateCampaign(100103, rtb.CpmToMicroCents(0.32), rtb.DollarsToMicroCents(15.00), []rtb.Target{rtb.Target{Type: rtb.Country, Value: "USA"}})
 	app.campaignProvider.CreateCampaign(100104, rtb.CpmToMicroCents(0.15), rtb.DollarsToMicroCents(22.00), []rtb.Target{rtb.Target{Type: rtb.OS, Value: "Android"}})
@@ -165,7 +169,10 @@ func NewRtbApp(options RtbAppOptions) *RtbApp {
 	app.banker = rtbr.NewRedisBanker(da)
 
 	app.campaignProvider = rtbr.NewRedisCampaignProvider(da, app.banker)
-	app.pacer = rtbr.NewRedisPacer(da, app.banker)
+
+	if options.PacerOptions.UsePacer {
+		app.pacer = rtbr.NewRedisPacer(app.campaignProvider, da, app.banker, time.Duration(options.PacerOptions.TimeSegmentInSeconds)*time.Second)
+	}
 	app.CreateDefaultCampaigns()
 
 	if options.PeriodicUpdates {

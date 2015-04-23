@@ -20,6 +20,8 @@ func main() {
 	flag.StringVar(&options.DataAccessOptions.Address, "redisaddress", "localhost:6379", "Redis network.")
 	flag.IntVar(&options.DataAccessOptions.ConnectionPoolSize, "redispoolsize", 100, "Maximum number of concurrent redis connections from this host.")
 	flag.StringVar(&options.LoggingOptions.AmqpAddress, "amqpaddress", "amqp://guest:guest@localhost:5672/", "AMQP Logging address.")
+	flag.BoolVar(&options.PacerOptions.UsePacer, "usepacer", false, "Use the simple time segmented pacer.")
+	flag.IntVar(&options.PacerOptions.TimeSegmentInSeconds, "pacersegment", 300, "Number of segments to pace the bids over.")
 	flag.BoolVar(&logToFile, "logtofile", true, "Log to file (overrides amqp options).")
 	flag.StringVar(&fileName, "filename", "", "File to log to (defaults to stdout).")
 	flag.BoolVar(&options.LoggingOptions.Verbose, "logverbose", false, "Log each request.")
