@@ -16,9 +16,6 @@ import (
 
 // Temporary in memory state for testing
 type RtbApp struct {
-	logger           rtb.BidLogProducer
-	bidLoggerChannel chan *rtb.BidLogItem // Limits the number of connections to loggers
-
 	domain       string
 	redisNetwork string
 	redisAddress string
@@ -29,6 +26,8 @@ type RtbApp struct {
 	updateTicker     *time.Ticker
 	accountBids      chan *rtb.BidResponse
 	bidTotals        map[int64]int64
+	logger           rtb.BidLogProducer
+	bidLoggerChannel chan *rtb.BidLogItem // Limits the number of connections to loggers
 }
 
 type RtbAppOptions struct {
@@ -45,10 +44,13 @@ type RtbAppOptions struct {
 		ConnectionPoolSize int
 	}
 	LoggingOptions struct {
-		AmqpAddress     string
-		File            *os.File
-		Verbose         bool
-		FullBidResponse bool
+		AmqpAddress        string
+		File               *os.File
+		Verbose            bool
+		FullBidResponse    bool
+		LogTransactions    bool
+		TransactionLogFile *os.File
+		TransactionLogCSV  bool
 	}
 }
 
@@ -90,7 +92,7 @@ func (app *RtbApp) BidRequestHandler(w http.ResponseWriter, r *http.Request) {
 			w.Header().Set("Content-Type", "application/json")
 			w.Write(js)
 
-			// Push the bid onto our stats process
+			// Push the bid onto our stats and transaction logging process
 			app.accountBids <- b
 		} else {
 			w.WriteHeader(http.StatusNoContent)
@@ -130,6 +132,7 @@ func (app *RtbApp) BidTotalUpdater() {
 				if rsp.Bid != nil {
 					for _, bid := range rsp.Bid {
 						campaignId, _ := strconv.ParseInt(bid.Cid, 10, 64)
+
 						total := app.bidTotals[campaignId] + 1
 						app.bidTotals[campaignId] = total
 					}
